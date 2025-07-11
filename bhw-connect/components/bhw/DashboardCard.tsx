@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-type Props = {
+type DashboardStatCardProps = {
   title: string;
   count: number;
   icon?: keyof typeof Ionicons.glyphMap;
@@ -15,14 +15,14 @@ export default function DashboardStatCard({
   icon = "stats-chart-outline",
   iconColor = "#4f46e5",
   backgroundColor = "#ffffff",
-}: Props) {
+}: DashboardStatCardProps) {
   return (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.iconWrapper}>
         <Ionicons name={icon} size={24} color={iconColor} />
       </View>
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.count}>{count.toLocaleString()}</Text>
+      <Text style={styles.count}>{count}</Text>
     </View>
   );
 }

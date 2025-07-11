@@ -4,12 +4,12 @@ import QuickActionButton from "../../../components/bhw/QuickActionButton";
 import { router } from "expo-router";
 import BhwHeaderCard from "@/components/bhw/BhwHeaderCard";
 import { useResidentStore } from "@/stores/useResidentStore";
-
-
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function DashboardScreen() {
+  const { user } = useAuthStore();
 
-  const { residents } = useResidentStore()
+  const { residents } = useResidentStore();
 
   const stats = [
     {
@@ -17,13 +17,13 @@ export default function DashboardScreen() {
       count: residents.length,
       icon: "people-outline",
       iconColor: "#4f46e5",
-    }
+    },
   ];
   return (
     <ScrollView style={styles.container}>
       <BhwHeaderCard
         title="BHW Dashboard"
-        subtitle="Welcome, Gomer"
+        subtitle={`Welcome, ${user.name}`}
         avatarUrl="https://i.pravatar.cc/100"
       />
 
@@ -43,9 +43,10 @@ export default function DashboardScreen() {
         <QuickActionButton
           label="Add Resident"
           icon="person-add-outline"
-          onPress={() => router.push("/(bhw)/residents")} 
+          onPress={() => router.push("/(bhw)/residents")}
         />
       </View>
+
     </ScrollView>
   );
 }

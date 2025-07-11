@@ -14,6 +14,8 @@ import { useState } from "react";
 import EditResidentForm from "@/components/bhw/forms/EditResidentForm";
 import { Resident } from "@/types/residentType";
 import Toast from "react-native-toast-message";
+import axiosInstance from "@/services/axiosInstance";
+import { useAreaStore } from "@/stores/useAreaStore";
 
 export default function ResidentDetailScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -21,12 +23,15 @@ export default function ResidentDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { residents, removeResident, updateResident } = useResidentStore();
+  const { areas } = useAreaStore();
 
   const resident = residents.find((r) => r._id === id);
 
   if (!resident) {
     return router.replace("/(bhw)/residents");
   }
+
+  const area = areas.find((a) => a._id === resident.areaId);
 
   const handleDelete = () => {
     Alert.alert(
@@ -37,31 +42,53 @@ export default function ResidentDetailScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            removeResident(resident._id);
-            Toast.show({
-              type: "success",
-              text1: "Resident deleted successully",
-              position: "bottom",
-            });
+          onPress: async () => {
+            try {
+              await axiosInstance.delete(`/residents/${resident._id}`);
+              removeResident(resident._id!);
+
+              Toast.show({
+                type: "success",
+                text1: "Resident deleted successfully",
+                position: "top",
+              });
+
+            } catch (error) {
+              console.error("Delete failed", error);
+              Toast.show({
+                type: "error",
+                text1: "Failed to delete",
+                text2: "Please try again later",
+              });
+            }
           },
         },
       ]
     );
   };
+  const handleEditResident = async (data: Resident) => {
+    try {
+      const response = await axiosInstance.put(`/residents/${data._id}`, data);
 
-  const handleEditResident = (data: Resident) => {
-    updateResident(data);
+      // Update the store with the new resident data
+      updateResident(response.data);
 
-    Toast.show({
-      type: "success",
-      text1: "Resident saved successfully!",
-      position: "bottom",
-    });
+      Toast.show({
+        type: "success",
+        text1: "Resident saved successfully!",
+        position: "top",
+      });
 
-    router.replace(`/(bhw)/residents/${data._id}`);
+      router.replace(`/(bhw)/residents/${data._id}`);
+    } catch (error) {
+      console.error("Update Resident Error:", error);
+      Toast.show({
+        type: "error",
+        text1: "Failed to update resident",
+        text2: "Please try again.",
+      });
+    }
   };
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -112,15 +139,57 @@ export default function ResidentDetailScreen() {
         </View>
 
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Area ID:</Text>
-          <Text style={styles.detailValue}>{resident.areaId}</Text>
+          <Text style={styles.detailLabel}>Occupation:</Text>
+          <Text style={styles.detailValue}>{resident.occupation}</Text>
         </View>
 
-        {resident.householdId && (
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Civil Status:</Text>
+          <Text style={styles.detailValue}>{resident.civilStatus}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Family Position:</Text>
+          <Text style={styles.detailValue}>{resident.familyPosition}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Garbage Disposal:</Text>
+          <Text style={styles.detailValue}>{resident.garbageDisposal}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Water Source:</Text>
+          <Text style={styles.detailValue}>{resident.waterSource}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Type of Toilet:</Text>
+          <Text style={styles.detailValue}>{resident.typeOfToilet}</Text>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Area:</Text>
+          <Text style={styles.detailValue}>{area?.name || "Unknown"}</Text>
+        </View>
+
+        {/* Health Info */}
+        {resident.LMP !== null && (
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Household ID:</Text>
-            <Text style={styles.detailValue}>{resident.householdId}</Text>
+            <Text style={styles.detailLabel}>LMP:</Text>
+            <Text style={styles.detailValue}>
+              {resident.LMP ? "Yes" : "No"}
+            </Text>
           </View>
+        )}
+        {["EDC", "GP", "TB", "HPN", "DM", "heartDisease", "disability"].map(
+          (key) =>
+            resident[key as keyof Resident] ? (
+              <View key={key} style={styles.detailRow}>
+                <Text style={styles.detailLabel}>{key}:</Text>
+                <Text style={styles.detailValue}>Yes</Text>
+              </View>
+            ) : null
         )}
       </View>
 

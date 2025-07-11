@@ -10,45 +10,68 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import BhwHeaderCard from "@/components/bhw/BhwHeaderCard";
 import { useResidentStore } from "@/stores/useResidentStore";
-import { useState } from "react";
-import { NewResidentInput, Resident } from "@/types/residentType";
+import { useEffect, useState } from "react";
+import { Resident } from "@/types/residentType";
 import AddResidentForm from "@/components/bhw/forms/AddResidentForm";
 import { calculateAge } from "@/helpers/functions";
 import Toast from "react-native-toast-message";
+import axiosInstance from "@/services/axiosInstance";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useAreaStore } from "@/stores/useAreaStore";
+import { Picker } from "@react-native-picker/picker";
 
 export default function ResidentsScreen() {
   const router = useRouter();
-
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedArea, setSelectedArea] = useState<string>("");
 
-  const { residents, addResident } = useResidentStore();
+  const { user } = useAuthStore();
+  const { residents, addResident, fetchResidents } = useResidentStore();
+  const { areas, fetchAreas } = useAreaStore();
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchAreas(user._id);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (areas.length > 0) {
+      setSelectedArea(areas[0]._id);
+    }
+  }, [areas]);
+
+  useEffect(() => {
+    if (selectedArea) {
+      fetchResidents(selectedArea);
+    }
+  }, [selectedArea]);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => {
+    if (selectedArea) {
+      fetchResidents(selectedArea).finally(() => {
+        setRefreshing(false);
+      });
+    } else {
       setRefreshing(false);
-    }, 1000);
+    }
   };
 
-  const handleAddResident = async (data: NewResidentInput) => {
+  const handleAddResident = async (data: Resident) => {
     try {
-      const sampleNewResident: Resident = {
-        ...data,
-        _id: Math.random().toString(36).substring(2, 10),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        areaId: "cope1",
-      };
-
-      addResident(sampleNewResident);
+      const response = await axiosInstance.post("/residents/", data);
+      const newResident = response.data;
+      addResident(newResident);
 
       Toast.show({
-        type: 'success',
-        text1: 'Resident added!',
-        position: "bottom"
+        type: "success",
+        text1: "Resident added!",
+        position: "top",
       });
     } catch (error) {
+      console.error("Add Resident Error:", error);
       Toast.show({
         type: "error",
         text1: "Something went wrong!",
@@ -65,54 +88,82 @@ export default function ResidentsScreen() {
         avatarUrl="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff"
       />
 
+      <View style={styles.dropdownContainer}>
+        <Text style={styles.label}>Select Area</Text>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={selectedArea}
+            onValueChange={(value) => setSelectedArea(value)}
+          >
+            {areas.map((area) => (
+              <Picker.Item key={area._id} label={area.name} value={area._id} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={18} color="#64748b" />
         <Text style={styles.searchPlaceholder}>Search residents...</Text>
       </View>
 
       <FlatList
-        data={residents}
-        keyExtractor={(item) => item._id}
+        data={
+          Array.isArray(residents)
+            ? [...residents].sort(
+                (a, b) =>
+                  new Date(b.createdAt ?? 0).getTime() -
+                  new Date(a.createdAt ?? 0).getTime()
+              )
+            : []
+        }
+        keyExtractor={(item) => item._id ?? String(item._id)}
         contentContainerStyle={styles.listContent}
         refreshing={refreshing}
         onRefresh={handleRefresh}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push(`/(bhw)/residents/${item._id}`)}
-          >
-            <View
-              style={[
-                styles.avatar,
-                {
-                  backgroundColor:
-                    item.gender === "Male" ? "#EFF6FF" : "#FDF2F8",
-                },
-              ]}
+        renderItem={({ item }) => {
+          const area = areas.find((a) => a._id === item.areaId);
+
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.navigate(`/(bhw)/residents/${item._id}`)}
             >
-              <Ionicons
-                name={item.gender === "Male" ? "male" : "female"}
-                size={20}
-                color={item.gender === "Male" ? "#3B82F6" : "#EC4899"}
-              />
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.name}>
-                {item.firstName} {item.lastName} {item?.suffix}
-              </Text>
-              <View style={styles.detailsRow}>
-                <Text style={styles.detail}>{item.gender}</Text>
-                <Text style={styles.detail}>•</Text>
-                <Text style={styles.detail}>
-                  {calculateAge(item.birthdate)} years
-                </Text>
-                <Text style={styles.detail}>•</Text>
-                <Text style={styles.detail}>{item.areaId}</Text>
+              <View
+                style={[
+                  styles.avatar,
+                  {
+                    backgroundColor:
+                      item.gender === "Male" ? "#EFF6FF" : "#FDF2F8",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={item.gender === "Male" ? "male" : "female"}
+                  size={20}
+                  color={item.gender === "Male" ? "#3B82F6" : "#EC4899"}
+                />
               </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-          </TouchableOpacity>
-        )}
+              <View style={styles.cardContent}>
+                <Text style={styles.name}>
+                  {item.firstName} {item.lastName} {item?.suffix}
+                </Text>
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detail}>{item.gender}</Text>
+                  <Text style={styles.detail}>•</Text>
+                  <Text style={styles.detail}>
+                    {calculateAge(item.birthdate)} years
+                  </Text>
+                  <Text style={styles.detail}>•</Text>
+                  <Text style={styles.detail}>
+                    {area?.name ?? "Unknown Area"}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={48} color="#cbd5e1" />
@@ -125,19 +176,17 @@ export default function ResidentsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setShowAddModal(true)}
       >
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
+
       <AddResidentForm
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSubmit={(data: NewResidentInput) => {
-          handleAddResident(data);
-        }}
+        onSubmit={handleAddResident}
       />
     </SafeAreaView>
   );
@@ -147,6 +196,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+  },
+  dropdownContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  label: {
+    marginBottom: 8,
+    fontWeight: "500",
+    color: "#475569",
   },
   searchContainer: {
     flexDirection: "row",

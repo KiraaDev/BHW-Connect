@@ -1,9 +1,23 @@
-import { Tabs } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Tabs, Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Platform, Pressable, ViewStyle } from "react-native";
 import { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useEffect } from "react";
+import { router } from "expo-router";
 
-export default function Layout() {
+export default function BHWLayout() {
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+
+  useEffect(() => {
+    if (!user || !token || user.role !== "bhw") {
+      router.replace("/login");
+    }
+  }, [user, token]);
+
+  if (!user || !token || user.role !== "bhw") return null;
+
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -11,7 +25,7 @@ export default function Layout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: "#fff",
-          height: Platform.OS === "ios" ? 88 : 90,
+          height: Platform.OS === "ios" ? 88 : 70,
           borderTopWidth: 0,
           elevation: 5,
         },
@@ -39,7 +53,7 @@ export default function Layout() {
             );
           }
 
-          if (route.name === "residents/index") {
+          if (route.name === "residents") {
             return (
               <Ionicons
                 name={focused ? "people" : "people-outline"}
@@ -63,35 +77,9 @@ export default function Layout() {
         },
       })}
     >
-      <Tabs.Screen
-        name="dashboard/index"
-        options={{
-          headerShown: false,
-        }}
-      />
-      
-      <Tabs.Screen
-        name="residents/index"
-        options={{
-          headerShown: false,
-        }}
-      />
-
-      {/* Hidden screens - these won't appear in tabs */}
-      <Tabs.Screen
-        name="residents/[id]/index"
-        options={{
-          href: null, // This hides from tab bar
-          headerShown: false,
-        }}
-      />
-
-      <Tabs.Screen
-        name="settings/index"
-        options={{
-          headerShown: false,
-        }}
-      />
+      <Tabs.Screen name="dashboard/index" options={{ headerShown: false }} />
+      <Tabs.Screen name="residents" options={{ headerShown: false }} />
+      <Tabs.Screen name="settings/index" options={{ headerShown: false }} />
     </Tabs>
   );
 }

@@ -5,8 +5,9 @@ import connection from "./config/mongodb";
 import dotenv from "dotenv";
 dotenv.config();
 
-import userRoute from "./routes/userRoute";
-import areaRoute from "./routes/areaRoutes";
+import userRoutes from "./routes/userRoutes";
+import areaRoutes from "./routes/areaRoutes";
+import residentRoutes from "./routes/residentRoutes";
 
 const app: Express = express();
 
@@ -17,8 +18,9 @@ app.use(cors({
   credentials: true               
 }));
 
-app.use("/api/user", userRoute);
-app.use("/api/area", areaRoute);
+app.use("/api/users", userRoutes);
+app.use("/api/areas", areaRoutes);
+app.use("/api/residents", residentRoutes);
 
 const PORT = process.env.PORT || 8080;
 

@@ -12,18 +12,50 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { login } from "@/services/authService";
+import Toast from "react-native-toast-message";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  const handleLogin = (): void => {
-    setLoading(true);
-    setTimeout(() => {
+  const handleLogin = async () => {
+    Toast.hide()
+    if (!email || !password) {
+      Toast.show({
+        type: "error",
+        text1: "Email and Password are required",
+        position: "bottom",
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const user = await login(email, password);
+
+      if (user) {
+        router.replace("/(bhw)/dashboard");
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Invalid Login",
+          position: "bottom",
+        });
+      }
+
+      setEmail(user.email);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Invalid Login",
+        position: "bottom",
+      });
+    } finally {
       setLoading(false);
-      router.replace("/(bhw)/dashboard");
-    }, 1500);
+    }
   };
 
   return (

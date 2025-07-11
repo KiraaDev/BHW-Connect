@@ -122,10 +122,10 @@ export const getBHWArea = asyncHandler(async (req: Request, res: Response) => {
       return;
     }
 
-    const area = await AreaModel.find({ bhwId: bhwId })
+    const areas = await AreaModel.find({ bhwId: bhwId })
 
     res.status(200).json({
-      area
+      areas
     })
 })
 

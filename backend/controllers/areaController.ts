@@ -2,6 +2,7 @@ import AreaModel from "../models/areaModel";
 import { Request, Response } from "express";
 import asyncHandler from "express-async-handler";
 import { UserModel } from "../models/userModel";
+import { isDocumentExists } from "../helpers/functions";
 
 export const createArea = asyncHandler(async (req: Request, res: Response) => {
   const { name, barangay, bhwId } = req.body;
@@ -14,9 +15,7 @@ export const createArea = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (bhwId) {
-    const bhwExists = await UserModel.exists({ _id: bhwId, role: "bhw" });
-
-    if (!bhwExists) {
+    if (!(await isDocumentExists(UserModel, bhwId))) {
       res.status(400).json({
         message: "Invalid BHW ID",
       });
