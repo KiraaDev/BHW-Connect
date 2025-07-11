@@ -34,4 +34,4 @@ connection()
     console.error("Error connecting to DB:", err);
   });
 
-// add cors
+export default app
